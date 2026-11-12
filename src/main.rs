@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{bytes::Captures, Regex};
 
 use server_manager::{DownloadLink, VersionPayload};
 
@@ -14,11 +14,6 @@ fn main() {
         .expect("Failed to deserialize Minecraft server versions payload");
     let links: Vec<DownloadLink> = payload.result.links;
     println!("Links: {:?}", links);
-    // let latest_download_re = Regex::new(r"https?://[a-zA-Z0-9\-\./]+/bin-(?<os>\w+)/bedrock-server-(?<version>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).zip").unwrap();
-    // let Some(results) = latest_download_re.captures(body.as_str()) else {
-    //     println!("Can't find download link!");
-    //     return;
-    // };
     let mut correct_download: Option<String> = None;
     for link in links {
         if !link.download_type.starts_with("serverBedrock") {
@@ -35,4 +30,11 @@ fn main() {
     }
     println!("Current OS: {:?}", std::env::consts::OS);
     println!("Correct download: {:?}", correct_download);
+    let latest_download_re = Regex::new(r"https?://[a-zA-Z0-9\-\./]+/bin-(?<os>\w+)/bedrock-server-(?<version>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).zip").unwrap();
+    let captures = latest_download_re
+        .captures(body.as_str())
+        .expect("Can't parse download link!");
+    let version =
+        lenient_semver::parse(&captures["version"]).expect("Failed to parse server version");
+    println!("Version: {:?}", version);
 }
