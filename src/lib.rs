@@ -65,7 +65,12 @@ pub struct VersionPayload {
 struct BedrockServerFilesFilter {}
 
 impl BedrockServerFilesFilter {
-    const FILES_TO_IGNORE: [&str; 0] = [];
+    const FILES_TO_IGNORE: [&str; 4] = [
+        "allowlist.json",
+        "permissions.json",
+        "server.properties",
+        "profanity_filter.wlist",
+    ];
 }
 
 impl FilenameFilter for BedrockServerFilesFilter {
@@ -83,7 +88,7 @@ pub fn ripunzip_uri(uri: String) -> Result<(), Box<dyn std::error::Error>> {
         output_directory: Some(PathBuf::from("/tmp/bedrock-server-ripunzip/")),
         password: None,
         single_threaded: true,
-        filename_filter: None,
+        filename_filter: Some(Box::new(BedrockServerFilesFilter {})),
         progress_reporter: Box::new(NullProgressReporter),
     };
     engine.unzip(opts)?;
