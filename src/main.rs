@@ -1,6 +1,6 @@
-use regex::{bytes::Captures, Regex};
+use regex::Regex;
 
-use server_manager::{DownloadLink, VersionPayload};
+use server_manager::{ripunzip_uri, DownloadLink, VersionPayload};
 
 fn main() {
     let bedrock_server_url: &str =
@@ -37,4 +37,19 @@ fn main() {
     let version =
         lenient_semver::parse(&captures["version"]).expect("Failed to parse server version");
     println!("Version: {:?}", version);
+    let correct_dl_str = correct_download.unwrap();
+    let server_zip_filename = correct_dl_str[correct_dl_str
+        .rfind("/")
+        .expect("Can't find '/' in download str")..]
+        .to_string();
+    let server_zip: bytes::Bytes = reqwest::blocking::get(correct_dl_str.clone())
+        .expect("Failed to get payload from Minecraft server API")
+        .bytes()
+        .expect("Failed to get bytes from Minecraft server download");
+    // .collect::<Result<Vec<u8>>>()
+    // .expect("Failed to collect bytes from payload into Vec")
+    std::fs::write(format!("/tmp/{}", server_zip_filename), server_zip.as_ref())
+        .expect("Failed to write bytes to file");
+    // unzip_payload(server_zip.as_ref()).expect("Failed to unzip server");
+    ripunzip_uri(correct_dl_str).expect("Failed to unzip from network stream");
 }

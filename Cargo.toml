@@ -13,13 +13,16 @@ name = "iron_ore"
 path = "src/main.rs"
 
 [dependencies]
+bytes = "1.12.1"
 clap = "4.6.7"
 lenient_semver = { version = "0.4.2", features = ["lenient_version"] }
 regex = "1.11.1"
 reqwest = { version = "0.12.12", features = ["blocking"] }
+ripunzip = { git = "https://github.com/GoogleChrome/ripunzip.git", tag = "v2.0.4", version = "2.0.4" }
 rusdantic = "0.1.0"
 rusdantic-core = "0.1.0"
 serde = "1.0.229"
 serde_json = "1.0.154"
 strum = "0.26.3"
 strum_macros = "0.26.4"
+zip = "9.5.1"
