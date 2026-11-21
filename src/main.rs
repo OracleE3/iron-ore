@@ -51,5 +51,5 @@ fn main() {
     std::fs::write(format!("/tmp/{}", server_zip_filename), server_zip.as_ref())
         .expect("Failed to write bytes to file");
     // unzip_payload(server_zip.as_ref()).expect("Failed to unzip server");
-    ripunzip_uri(correct_dl_str).expect("Failed to unzip from network stream");
+    ripunzip_uri(correct_dl_str, false).expect("Failed to unzip from network stream");
 }
