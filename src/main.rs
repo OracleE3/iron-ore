@@ -55,14 +55,14 @@ fn main() {
         .rfind("/")
         .expect("Can't find '/' in download str")..]
         .to_string();
-    let server_zip: bytes::Bytes = reqwest::blocking::get(correct_dl_str.clone())
-        .expect("Failed to get payload from Minecraft server API")
-        .bytes()
-        .expect("Failed to get bytes from Minecraft server download");
-    // .collect::<Result<Vec<u8>>>()
-    // .expect("Failed to collect bytes from payload into Vec")
-    std::fs::write(format!("/tmp/{}", server_zip_filename), server_zip.as_ref())
-        .expect("Failed to write bytes to file");
+    if false {
+        let server_zip: bytes::Bytes = reqwest::blocking::get(correct_dl_str.clone())
+            .expect("Failed to get payload from Minecraft server API")
+            .bytes()
+            .expect("Failed to get bytes from Minecraft server download");
+    }
+    // std::fs::write(format!("/tmp/{}", server_zip_filename), server_zip.as_ref())
+    //     .expect("Failed to write bytes to file");
     // unzip_payload(server_zip.as_ref()).expect("Failed to unzip server");
     // ripunzip_uri(correct_dl_str, args.output_dir, false)
     //     .expect("Failed to unzip from network stream");
@@ -70,5 +70,8 @@ fn main() {
     let versions =
         load_version_list_from_github(community_url, server_manager::ServerPlatform::Linux)
             .expect("Failed to load old versions");
-    // println!("All versions: {:?}", versions);
+    println!(
+        "All versions: {}",
+        serde_json::to_string_pretty(&versions).expect("Failed to serialize versions")
+    );
 }

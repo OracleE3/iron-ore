@@ -70,9 +70,11 @@ pub fn load_version_list_from_github(
     let platform_section_end: String =
         format!("{}-RELEASES:END", platform.to_string().to_ascii_uppercase());
     let mut versions: HashMap<String, String> = HashMap::new();
+    println!("Downloading legacy server version list...");
     let releases_list: String = reqwest::blocking::get(url)?
         .text()
         .expect(format!("Failed to get payload from community source '{}'", url).as_str());
+    println!("done");
     for l in releases_list
         .split("\n")
         .skip_while(|l| !l.contains(platform_section_start.as_str()))
@@ -92,10 +94,6 @@ pub fn load_version_list_from_github(
             continue;
         }
     }
-    println!(
-        "Got versions: {}",
-        serde_json::to_string_pretty(&versions).expect("Failed to serialize versions")
-    );
     Ok(versions)
 }
 
