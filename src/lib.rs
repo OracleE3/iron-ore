@@ -1,24 +1,32 @@
 // mod server_manager {
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use lenient_semver::parse;
+use regex::Regex;
+use reqwest::Error;
 use ripunzip::{
     FilenameFilter, NullProgressReporter, UnzipEngine, UnzipOptions, UnzipProgressReporter,
 };
 use rusdantic::prelude::*;
+use semver::Version;
 use std::{
+    collections::HashMap,
     fmt::Write,
     io::{Cursor, Read},
     path::PathBuf,
     sync::RwLock,
 };
-use strum_macros::EnumString;
-use zip::ZipArchive;
+use strum_macros::{Display, EnumString};
 
-#[derive(Debug, PartialEq, EnumString)]
+#[derive(Debug, Display, PartialEq, EnumString)]
 pub enum ServerPlatform {
-    Windows(String),
-    Linux(String),
-    WindowsPreview(String),
-    LinuxPreview(String),
+    #[strum(serialize = "Windows")]
+    Windows,
+    #[strum(serialize = "Linux")]
+    Linux,
+    #[strum(serialize = "PreviewWindows")]
+    WindowsPreview,
+    #[strum(serialize = "PreviewLinux")]
+    LinuxPreview,
 }
 
 #[derive(Rusdantic, Debug)]
@@ -47,6 +55,48 @@ pub struct VersionResult {
 pub struct VersionPayload {
     #[rusdantic(nested)]
     pub result: VersionResult,
+}
+
+pub fn load_version_list_from_github(
+    url: &str,
+    platform: ServerPlatform,
+) -> Result<HashMap<String, String>, Error> {
+    let version_url_re = Regex::new(r"\* \[(?<version>(\d+\.){3}\d+)\]\((?<url>[\w:/\\\.-]+)\)")
+        .expect("Failed to compile regex");
+    let platform_section_start: String = format!(
+        "{}-RELEASES:START",
+        platform.to_string().to_ascii_uppercase()
+    );
+    let platform_section_end: String =
+        format!("{}-RELEASES:END", platform.to_string().to_ascii_uppercase());
+    let mut versions: HashMap<String, String> = HashMap::new();
+    let releases_list: String = reqwest::blocking::get(url)?
+        .text()
+        .expect(format!("Failed to get payload from community source '{}'", url).as_str());
+    for l in releases_list
+        .split("\n")
+        .skip_while(|l| !l.contains(platform_section_start.as_str()))
+    {
+        if l.is_empty() {
+            continue;
+        } else if l.contains(platform_section_start.as_str()) {
+            continue;
+        } else if l.contains(platform_section_end.as_str()) {
+            break;
+        }
+        if let Some(captures) = version_url_re.captures(l) {
+            // let ver: Version = parse(&captures["version"]).expect("Failed to parse server version");
+            versions.insert(captures["version"].to_string(), captures["url"].to_string());
+        } else {
+            println!("Line '{}' does not match regex '{:?}'", l, version_url_re);
+            continue;
+        }
+    }
+    println!(
+        "Got versions: {}",
+        serde_json::to_string_pretty(&versions).expect("Failed to serialize versions")
+    );
+    Ok(versions)
 }
 
 // pub fn unzip_payload(zip_bytes: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
@@ -113,7 +163,11 @@ impl UnzipProgressReporter for ProgressDisplayer {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn ripunzip_uri(uri: String, silent: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn ripunzip_uri(
+    uri: String,
+    output_dir: String,
+    silent: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let engine = UnzipEngine::for_uri(uri.as_str(), None, || {
         println!("Failed to unzip URI");
     })
@@ -124,7 +178,7 @@ pub fn ripunzip_uri(uri: String, silent: bool) -> Result<(), Box<dyn std::error:
         Box::new(ProgressDisplayer::new())
     };
     let opts = UnzipOptions {
-        output_directory: Some(PathBuf::from("/tmp/bedrock-server-ripunzip/")),
+        output_directory: Some(PathBuf::from(output_dir)),
         password: None,
         single_threaded: true,
         filename_filter: Some(Box::new(BedrockServerFilesFilter {})),

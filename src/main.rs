@@ -1,8 +1,21 @@
 use regex::Regex;
 
-use server_manager::{ripunzip_uri, DownloadLink, VersionPayload};
+use clap::Parser;
+
+use server_manager::{load_version_list_from_github, ripunzip_uri, DownloadLink, VersionPayload};
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    output_dir: String,
+    #[arg(short, long, default_value_t = false)]
+    silent: bool,
+}
 
 fn main() {
+    let args = Args::parse();
+
     let bedrock_server_url: &str =
         "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links";
     let body: String = reqwest::blocking::get(bedrock_server_url)
@@ -51,5 +64,11 @@ fn main() {
     std::fs::write(format!("/tmp/{}", server_zip_filename), server_zip.as_ref())
         .expect("Failed to write bytes to file");
     // unzip_payload(server_zip.as_ref()).expect("Failed to unzip server");
-    ripunzip_uri(correct_dl_str, false).expect("Failed to unzip from network stream");
+    // ripunzip_uri(correct_dl_str, args.output_dir, false)
+    //     .expect("Failed to unzip from network stream");
+    let community_url = "https://raw.githubusercontent.com/AX1111YT/Previous-Bedrock-Minecraft-Server-Versions-Windows-Linux-/refs/heads/main/README.md";
+    let versions =
+        load_version_list_from_github(community_url, server_manager::ServerPlatform::Linux)
+            .expect("Failed to load old versions");
+    // println!("All versions: {:?}", versions);
 }
